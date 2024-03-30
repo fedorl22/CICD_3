@@ -1,0 +1,53 @@
+stages:
+  - build
+  - test
+  - deploy
+
+build_job:
+  stage: build
+  script:
+    - echo "Building the project"
+
+test_job:
+  stage: test
+  script:
+    - echo "Running tests"
+
+deploy_preprod:
+  stage: deploy
+  script:
+    - echo "Deploying to preprod environment"
+    - echo "Login: $MyLogin"
+    - echo "Password: $MyPassword"
+  environment:
+    name: preprod
+
+deploy_production:
+  stage: deploy
+  script:
+    - echo "Deploying to production environment"
+    - echo "Login: $MyLogin"
+    - echo "Password: $MyPassword"
+  environment:
+    name: production
+
+pages:
+  stage: deploy
+  script:
+    - echo "Publishing GitLab Pages"
+  artifacts:
+    paths:
+      - public
+  only:
+    - master
+
+stop_pipelines:
+  stage: deploy
+  script:
+    - |
+      PIPELINES=$(curl --header "PRIVATE-TOKEN: $CI_JOB_TOKEN" "https://gitlab.com/ci_cd-processes/CI-CD-1/pipelines?ref=$CI_COMMIT_REF_NAME" | jq -r '.[] | select(.status == "running") | .id')
+      for PIPELINE in $PIPELINES; do
+        curl --request POST --header "PRIVATE-TOKEN: $CI_JOB_TOKEN" "https://gitlab.com/ci_cd-processes/CI-CD-1/pipelines/$PIPELINE/cancel"
+      done
+  only:
+    - branches
